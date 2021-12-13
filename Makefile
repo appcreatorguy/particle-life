@@ -45,3 +45,6 @@ binary: clean ## build standalone binary
 
 install: clean ## install the package to the active Python's site-packages
 	python setup.py install
+
+env: ## Activate virtual environment
+	.\venv\Scripts\activate
