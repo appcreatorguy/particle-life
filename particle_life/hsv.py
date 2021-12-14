@@ -9,7 +9,7 @@ def from_HSV(h, s, v):
     g = 0
     b = 0
 
-    switch = i % 6 # value to pseudo-switch on as python has no native switch statement
+    switch = i % 6  # value to pseudo-switch on as python has no native switch statement
     if switch == 0:
         r = v
         g = t
@@ -35,8 +35,4 @@ def from_HSV(h, s, v):
         g = p
         b = q
 
-    return {
-        'r': round(r * 255),
-        'g': round(g * 255),
-        'b': round(b * 255)
-    }
+    return {"r": round(r * 255), "g": round(g * 255), "b": round(b * 255)}

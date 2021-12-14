@@ -30,9 +30,9 @@ clean-pyc: ## remove Python file artifacts
 	find . -name '__pycache__' -exec rm -fr {} +
 
 lint: ## check style with flake8, isort and black
-	flake8 collatz_tree tests
-	isort collatz_tree tests
-	black collatz_tree tests
+	flake8 particle_life -q
+	isort particle_life
+	black particle_life
 
 dist: clean ## builds source and wheel package
 	python setup.py sdist
@@ -40,7 +40,7 @@ dist: clean ## builds source and wheel package
 	ls -l dist
 
 binary: clean ## build standalone binary
-	python -m PyInstaller -F --name collatz_tree collatz_tree/cli.py
+	python -m PyInstaller -F --name particle_life particle_life/cli.py
 	ls -l dist
 
 install: clean ## install the package to the active Python's site-packages
