@@ -5,7 +5,7 @@ from pygame.locals import *
 
 window_w = 1280
 window_h = 720
-steps_per_frame_normal = 10
+steps_per_frame_normal = 1
 
 
 def main():
@@ -58,7 +58,7 @@ def main():
     pygame.init()
     screen = pygame.display.set_mode([window_w, window_h], vsync = 1)
     pygame.display.set_caption("Particles")
-    surface = pygame.surface.Surface([window_w, window_h])
+    surface = pygame.surface.Surface([400, 300])
     clock = pygame.time.Clock()
 
     # Main Loop
@@ -141,7 +141,7 @@ def main():
             opacity = float(i + 1) / float(steps_per_frame)
             universe.step()
             universe.draw(surface, opacity)
-        screen.blit(surface, (0,0))
+        screen.blit(pygame.transform.scale(surface, screen.get_rect().size), (0,0))
 
         # Flip the screen buffer
         pygame.display.flip()

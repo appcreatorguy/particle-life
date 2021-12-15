@@ -79,6 +79,8 @@ class Universe:
             self.types.set_color(
                 i, hsv.from_HSV(i / self.types.size(), 1, (i % 2) * 0.5 + 0.5)
             )
+            
+            print("HSV:", hsv.from_HSV(i / self.types.size(), 1, (i % 2) * 0.5 + 0.5))
 
             for j in range(self.types.size()):
                 if i == j:
@@ -111,6 +113,7 @@ class Universe:
             p["vy"] = randNorm * (self.randGen()) * 0.2
 
     def step(self):
+        print("Stepping")
         for i in range(len(self.particles)):
             # Current Particle
             p = self.particles[i]
@@ -218,10 +221,10 @@ class Universe:
             y = (p["y"] - self.centerY) * self.zoom + self.height / 2
             col = self.types.get_color(p["type"])
 
-            print(pygame.Color(col['r'], col['g'], col['b']), (x, y), circleRadius, 0)
+            print(col)
             pygame.draw.circle(
                 ctx,
-                pygame.Color(col['r'], col['g'], col['b']), # pygame.Color(col["r"], col["g"], col["b"], col["a"]) if (col['a'] in col.keys()) else pygame.Color(col['r'], col['g'], col['b']),
+                (col['r'], col['g'], col['b']), # pygame.Color(col["r"], col["g"], col["b"], col["a"]) if (col['a'] in col.keys()) else pygame.Color(col['r'], col['g'], col['b']),
                 (x, y),
                 circleRadius,
                 0,

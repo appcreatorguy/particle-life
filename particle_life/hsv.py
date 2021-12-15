@@ -35,4 +35,4 @@ def from_HSV(h, s, v):
         g = p
         b = q
 
-    return {"r": round(r * 255), "g": round(g * 255), "b": round(b * 255)}
+    return {"r": min(round(r * 255), 255), "g":min(round(g * 255), 255), "b": min(round(b * 255), 255)}

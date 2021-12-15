@@ -31,16 +31,16 @@ class ParticleTypes:
         return self.attract[i * len(self.col) + j]
 
     def set_attract(self, i, j, value):
-        self.attract[i * len(self.col) + j] = value
+        self.attract[i * len(self.col) + j - 1] = value
 
     def get_minR(self, i, j):
         return self.minR[i * len(self.col) + j]
 
     def set_minR(self, i, j, value):
-        self.minR[i * len(self.col) + j] = value
+        self.minR[i * len(self.col) + j - 1] = value
 
     def get_maxR(self, i, j):
         return self.attract[i * len(self.col) + j]
 
     def set_maxR(self, i, j, value):
-        self.maxR[i * len(self.col) + j] = value
+        self.maxR[i * len(self.col) + j - 1] = value
