@@ -1,43 +1,41 @@
 """Universe Class"""
+
 import math
 import random
-from types import WrapperDescriptorType
 
 import pygame
+from hsv import *
 from numpy.random import default_rng
+from resize_array import *
+from particles import *
 
-import hsv, particles
-from resize_array import resize_array
-
-radius = 5.0
-diameter = 2.0
-r_smooth = 2.0
+RADIUS = 5.0
+DIAMETER = 2.0
+R_SMOOTH = 2.0
 
 
 class Universe:
     def __init__(self, numTypes, numParticles, width, height):
-        self.randGen = random.random
-        self.types = particles.ParticleTypes()
-        self.particles = [particles.make_particle()] * numParticles
+        self.types = ParticleTypes()
+        self.particles = []
+        for i in range(numParticles):
+            self.particles.append(Particle())
 
         self.set_size(width, height)
         self.set_population(numTypes, numParticles)
-
+        
         self.centerX = self.width * 0.5
         self.centerY = self.height * 0.5
         self.zoom = 1
         self.attractMean = 0
         self.attractStd = 0
-        self.minRLower = 0
-        self.minRUpper = 0
-        self.maxRLower = 0
-        self.maxRUpper = 0
+        self.min_r_lower = 0
+        self.min_r_upper = 0
+        self.max_r_lower = 0
+        self.max_r_upper = 0
         self.friction = 0
-        self.flatForce = False
-        self.wrap = False
-
-    def set_engine(self, newEngine):
-        self.randGen = newEngine
+        self.flat_force = False
+        self.wrap = True
 
     def set_size(self, width, height):
         self.width = width
@@ -45,75 +43,78 @@ class Universe:
 
     def set_population(self, numTypes, numParticles):
         self.types.resize(numTypes)
-        resize_array(self.particles, numParticles, particles.make_particle())
+        self.particles = make_particles(self.particles, numParticles,)
 
     def re_seed(
         self,
         attractMean,
         attractStd,
-        minRLower,
-        minRUpper,
-        maxRLower,
-        maxRUpper,
+        min_r_lower,
+        min_r_upper,
+        max_r_lower,
+        max_r_upper,
         friction,
-        flatForce,
+        flat_force,
     ):
         self.attractMean = attractMean
         self.attractStd = attractStd
-        self.minRLower = minRLower
-        self.minRUpper = minRUpper
-        self.maxRLower = maxRLower
-        self.maxRUpper = maxRUpper
+        self.min_r_lower = min_r_lower
+        self.min_r_upper = min_r_upper
+        self.max_r_lower = max_r_lower
+        self.max_r_upper = max_r_upper
         self.friction = friction
-        self.flatForce = flatForce
+        self.flat_force = flat_force
         self.set_random_types()
         self.set_random_particles()
 
     def set_random_types(self):
         rng = default_rng()
-        randAttr = rng.normal(self.attractMean, self.attractStd)
-        randMinR = rng.uniform(self.minRLower, self.minRUpper)
-        randMaxR = rng.uniform(self.maxRLower, self.maxRUpper)
+        rand_attr = lambda: rng.normal(self.attractMean, self.attractStd)
+        rand_min_r = lambda: rng.uniform(self.min_r_lower, self.min_r_upper)
+        rand_max_r = lambda: rng.uniform(self.max_r_lower, self.max_r_upper)
 
         for i in range(self.types.size()):
             self.types.set_color(
-                i, hsv.from_HSV(i / self.types.size(), 1, (i % 2) * 0.5 + 0.5)
+                i,
+                from_HSV(
+                    float(i) / self.types.size(), float(1.0), float(i % 2) * 0.5 + 0.5
+                ),
             )
-            
-            print("HSV:", hsv.from_HSV(i / self.types.size(), 1, (i % 2) * 0.5 + 0.5))
-
             for j in range(self.types.size()):
                 if i == j:
-                    self.types.set_attract(i, j, -abs(randAttr * (self.randGen())))
-                    self.types.set_minR(i, j, diameter)
+                    self.types.set_attract(
+                        i, j, -abs(rand_attr())
+                    )  # Same particles should always be attracted to each other
+                    self.types.set_min_r(i, j, DIAMETER)
                 else:
-                    self.types.set_attract(i, j, randAttr * (self.randGen()))
-                    self.types.set_minR(i, j, max(randMinR * (self.randGen()), diameter))
+                    self.types.set_attract(i, j, rand_attr())
+                    self.types.set_min_r(
+                        i, j, max(rand_min_r(), DIAMETER)
+                    )  # Keep min radius above diameter
+                self.types.set_max_r(
+                    i, j, max(rand_max_r(), self.types.get_min_r(i, j))
+                )  # Keep max radius above min
 
-                self.types.set_maxR(
-                    i, j, max(randMaxR * (self.randGen()), self.types.get_minR(i, j))
-                )
-
-                # keep radii symmetric
-                self.types.set_maxR(j, i, self.types.get_maxR(i, j))
-                self.types.set_minR(j, i, self.types.get_minR(i, j))
+                # Keep radii symmetric
+                self.types.set_max_r(j, i, self.types.get_max_r(i, j))
+                self.types.set_min_r(j, i, self.types.get_min_r(i, j))
 
     def set_random_particles(self):
         rng = default_rng()
-        randType = rng.uniform(0, self.types.size() - 1)
-        randUni = rng.uniform(0, 1)
-        randNorm = rng.normal(0, 1)
+        rand_type = lambda: rng.uniform(0, (self.types.size() - 1))
+        rand_uni = lambda: rng.uniform(0.0, 1.0)
+        rand_norm = lambda: rng.normal(0.0, 1.0)
 
         for i in range(len(self.particles)):
             p = self.particles[i]
-            p["type"] = round(randType * (self.randGen()))
-            p["x"] = (randUni * (self.randGen()) * 0.5 + 0.25) * self.height
-            p["y"] = (randUni * (self.randGen()) * 0.5 + 0.25) * self.width
-            p["vx"] = randNorm * (self.randGen()) * 0.2
-            p["vy"] = randNorm * (self.randGen()) * 0.2
+            p.type = round(rand_type())
+            p.x = (rand_uni() * 0.5 + 0.25) * self.height
+            p.y = (rand_uni() * 0.5 + 0.25) * self.width
+            p.vx = rand_norm() * 0.2
+            p.vy = rand_norm() * 0.2
 
     def step(self):
-        print("Stepping")
+        # print("Stepping")
         for i in range(len(self.particles)):
             # Current Particle
             p = self.particles[i]
@@ -124,26 +125,25 @@ class Universe:
                 q = self.particles[j]
 
                 # Get deltas
-                dx = q["x"] - p["x"]
-                dy = q["y"] - p["y"]
-
+                dx = q.x - p.x
+                dy = q.y - p.y
                 if self.wrap:
                     if dx > self.width * 0.5:
                         dx -= self.width
-                    elif dx < -self.width * 0.5:
+                    elif dx < -self.width*0.5:
                         dx += self.width
-
                     if dy > self.height * 0.5:
                         dy -= self.height
                     elif dy < -self.height * 0.5:
                         dy += self.height
 
-                # Get distance squared
+                # Get distance using pythag
                 r2 = dx * dx + dy * dy
-                minR = self.types.get_minR(p["type"], q["type"])
-                maxR = self.types.get_maxR(p["type"], q["type"])
+                min_r = self.types.get_min_r(p.type, q.type)
+                max_r = self.types.get_max_r(p.type, q.type)
 
-                if r2 > maxR * maxR or r2 < 0.01:
+                if r2 > max_r * max_r or r2 < 0.01:# or math.sqrt(r2) <= DIAMETER:
+                    # check for distance cutoff
                     continue
 
                 # Normalise displacement
@@ -151,26 +151,20 @@ class Universe:
                 dx /= r
                 dy /= r
 
-                # Calculate flatForce
+                # calculate force
                 f = 0.0
-                if r > minR:
-                    if self.flatForce:
-                        f = self.types.get_attract(p["type"], q["type"])
+                if r > min_r:
+                    if self.flat_force:
+                        f = self.types.get_attract(p.type, q.type)
                     else:
-                        numer = 2.0 * abs(r - 0.5 * (maxR + minR))
-                        denom = maxR - minR
-                        f = self.types.get_attract(p["type"], q["type"]) * (
-                            1.0 - numer / denom
-                        )
+                        numer = 2.0 * abs(r - 0.5 * (max_r + min_r))
+                        denom = max_r - min_r
+                        f = self.types.get_attract(p.type, q.type) * (1.0 - numer / denom)
                 else:
-                    f = (
-                        r_smooth
-                        * minR
-                        * (1.0 / (minR + r_smooth) - 1.0 / (r + r_smooth))
-                    )
+                    f = R_SMOOTH*min_r*(1.0/(min_r+R_SMOOTH)-1.0/(r+R_SMOOTH))
 
-                p["vx"] = f * dx
-                p["vy"] = f * dy
+                p.vx += f * dx
+                p.vy += f * dy
             self.particles[i] = p
 
         # Update Position
@@ -179,74 +173,71 @@ class Universe:
             p = self.particles[i]
 
             # Update Position and velocity
-            p["x"] = p["vx"]
-            p["y"] = p["vy"]
-            p["vx"] = 1.0 - self.friction
-            p["vy"] = 1.0 - self.friction
+            p.x += p.vx
+            p.y += p.vy
+            p.vx *= 1.0 - self.friction
+            p.vy *= 1.0 - self.friction
 
             # Check for wall
             if self.wrap:
-                if p["x"] < 0:
-                    p["x"] += self.width
-                elif p["x"] >= self.width:
-                    p["x"] -= self.width
+                if p.x < 0:
+                    p.x += self.width
+                elif p.x >= self.width:
+                    p.x -= self.width
 
-                if p["y"] < 0:
-                    p["y"] + self.height
-                elif p["y"] >= self.height:
-                    p["y"] -= self.height
+                if p.y < 0:
+                    p.y + self.height
+                elif p.y >= self.height:
+                    p.y -= self.height
 
             else:
-                if p["x"] < diameter:
-                    p["vx"] = -p["vx"]
-                    p["x"] = diameter
-                elif p["x"] >= self.width - diameter:
-                    p["vx"] = -p["vx"]
-                    p["x"] = self.width - diameter
+                if p.x < DIAMETER:
+                    p.vx = -p.vx
+                    p.x = DIAMETER
+                elif p.x >= self.width - DIAMETER:
+                    p.vx = -p.vx
+                    p.x = self.width - DIAMETER
 
-                if p["y"] < diameter:
-                    p["vy"] = -p["vy"]
-                    p["y"] = diameter
-                elif p["y"] >= self.height - diameter:
-                    p["vy"] = -p["vy"]
-                    p["y"] = self.height - diameter
+                if p.y < DIAMETER:
+                    p.vy = -p.vy
+                    p.y = DIAMETER
+                elif p.y >= self.height - DIAMETER:
+                    p.vy = -p.vy
+                    p.y = self.height - DIAMETER
 
             self.particles[i] = p
 
     def draw(self, ctx, opacity):
-        circleRadius = radius * self.zoom
+        circleRadius = RADIUS * self.zoom
         for i in range(len(self.particles)):
             p = self.particles[i]
-            x = (p["x"] - self.centerX) * self.zoom + self.width / 2
-            y = (p["y"] - self.centerY) * self.zoom + self.height / 2
-            col = self.types.get_color(p["type"])
+            x = (p.x - self.centerX) * self.zoom + float(self.width / 2)
+            y = (p.y - self.centerY) * self.zoom + float(self.height / 2)
+            # x = p.x + (self.width / 2)
+            # y = p.y + (self.height / 2)
+            col = self.types.get_color(p.type)
+            col.a = int(opacity * 25.5)
 
-            print(col)
-            pygame.draw.circle(
-                ctx,
-                (col['r'], col['g'], col['b']), # pygame.Color(col["r"], col["g"], col["b"], col["a"]) if (col['a'] in col.keys()) else pygame.Color(col['r'], col['g'], col['b']),
-                (x, y),
-                circleRadius,
-                0,
-            )
+            # print(x, y)
+            pygame.draw.circle(ctx, col, (x, y), circleRadius, 0)
 
     def get_index(self, x, y):
-        cx, cy = self.to_center(x, y)
+            cx, cy = self.to_center(x, y)
 
-        for i in range(len(self.particles)):
-            dx = self.particles[i]["x"] - cx
-            dy = self.particles[i]["y"] - cy
+            for i in range(len(self.particles)):
+                dx = self.particles[i].x - cx
+                dy = self.particles[i].y - cy
 
-            if dx * dx + dy * dy < radius * radius:
-                return i
+                if dx * dx + dy * dy < RADIUS * RADIUS:
+                    return int(i)
 
-        return -1
+            return -1
 
     def get_particle_x(self, index):
-        return self.particles[index]["x"]
+        return self.particles[index].x
 
     def get_particle_y(self, index):
-        return self.particles[index]["x"]
+        return self.particles[index].y
 
     def to_center(self, x, y):
         cx = self.centerX + (x - self.width / 2) / self.zoom
@@ -257,13 +248,13 @@ class Universe:
         # Apply the zoom
         self.centerX = cx
         self.centerY = cy
-        self.zoom = max(1, zoom)
+        self.zoom = max(1.0, zoom)
 
         # Clamp to make sure camera doesn't go out of bounds
-        self.centerX = min(self.centerX, self.width * (1.0 - 0.5 / self.zoom))
-        self.centerY = min(self.centerY, self.height * (1.0 - 0.5 / self.zoom))
-        self.centerX = min(self.centerX, self.width * (0.5 / self.zoom))
-        self.centerY = min(self.centerY, self.height * (0.5 / self.zoom))
+        self.centerX = min(self.centerX, float(self.width)* (1.0 - 0.5 / self.zoom))
+        self.centerY = min(self.centerY, float(self.height) * (1.0 - 0.5 / self.zoom))
+        self.centerX = min(self.centerX, float(self.width)* (0.5 / self.zoom))
+        self.centerY = min(self.centerY, float(self.height) * (0.5 / self.zoom))
 
     def print_params(self):
         print("Attract: ")

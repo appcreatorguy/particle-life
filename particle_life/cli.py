@@ -2,8 +2,7 @@
 import sys
 
 import click
-
-import particle_life
+import main as particlelife
 
 
 @click.command()
@@ -14,7 +13,7 @@ def main(args=None):
     )
     click.echo("See click documentation at https://click.palletsprojects.com/")
 
-    particle_life.main()
+    particlelife.main()
     return 0
 
 

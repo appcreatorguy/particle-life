@@ -1,4 +1,4 @@
-"""Top-level package for Collatz Tree."""
+"""Top-level package for Particle Life."""
 
 __author__ = """Manas Mengle"""
 __email__ = "appcreatorguy@gmail.com"
